@@ -1,12 +1,16 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"laci-cabang-be/config"
 	"laci-cabang-be/controllers"
 	_ "laci-cabang-be/docs" // Impor spesifikasi dokumentasi Swagger
 	"laci-cabang-be/middleware"
+	"laci-cabang-be/models"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -16,8 +20,13 @@ import (
 // corsMiddleware menangani izin akses lintas asal (CORS) dari frontend
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Mengizinkan semua asal selama pengembangan
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		// Mengambil asal pengirim secara dinamis untuk mematuhi spesifikasi ketat CORS saat kredensial aktif
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
@@ -62,5 +71,50 @@ func SetupRoutes(r *gin.Engine) {
 			// Endpoint terproteksi (membutuhkan token JWT)
 			auth.GET("/me", middleware.AuthMiddleware(), controllers.GetProfile)
 		}
+
+		// Rute Manajemen Peran dan Hak Akses (RBAC) secara Flat dan Lugas
+		api.GET("/roles", middleware.AuthMiddleware(), controllers.GetRoles)
+		api.GET("/roles/list", middleware.AuthMiddleware(), controllers.GetRoles)
+		api.POST("/roles", middleware.AuthMiddleware(), middleware.RequirePermission("post_roles"), controllers.CreateRole)
+		api.GET("/roles/permissions", middleware.AuthMiddleware(), controllers.GetPermissions)
+		api.POST("/roles/permissions", middleware.AuthMiddleware(), middleware.RequirePermission("post_roles_permissions"), controllers.CreatePermission)
+		api.PUT("/roles/:id/default", middleware.AuthMiddleware(), middleware.RequirePermission("put_roles_:id_default"), controllers.SetDefaultRole)
+		api.GET("/roles/:id", middleware.AuthMiddleware(), controllers.GetRoleById)
+		api.PUT("/roles/:id", middleware.AuthMiddleware(), middleware.RequirePermission("put_roles_:id"), controllers.UpdateRole)
 	}
+
+	// SINKRONISASI OTOMATIS: Memindai rute yang didaftarkan untuk dijadikan butiran Permission
+	syncPermissionsFromRoutes(r)
+}
+
+// syncPermissionsFromRoutes memindai seluruh rute /api terdaftar dan otomatis menyuntikkannya ke tabel permissions
+func syncPermissionsFromRoutes(r *gin.Engine) {
+	fmt.Println("Seeding: Memindai rute API terdaftar untuk di-generate menjadi butiran hak akses otomatis...")
+	for _, route := range r.Routes() {
+		// Kita hanya mengambil rute di bawah /api
+		if !strings.HasPrefix(route.Path, "/api") {
+			continue
+		}
+
+		// Susun nama izin yang deskriptif dan manusiawi
+		cleanPath := strings.TrimPrefix(route.Path, "/api/")
+		cleanPath = strings.ReplaceAll(cleanPath, "/", "_")
+		if cleanPath == "" || cleanPath == "_" {
+			cleanPath = "root"
+		}
+
+		permName := strings.ToLower(route.Method) + "_" + cleanPath
+		permName = strings.ReplaceAll(permName, "__", "_")
+		permName = strings.TrimSuffix(permName, "_")
+
+		var existing models.Permission
+		if err := config.DB.Where("name = ?", permName).First(&existing).Error; err != nil {
+			desc := fmt.Sprintf("Mengizinkan akses eksekusi ke endpoint %s %s", route.Method, route.Path)
+			config.DB.Create(&models.Permission{
+				Name:        permName,
+				Description: desc,
+			})
+		}
+	}
+	fmt.Println("Sinkronisasi butir hak akses rute selesai!")
 }

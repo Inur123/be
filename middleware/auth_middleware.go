@@ -47,11 +47,11 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Ekstrak klaim dari token
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			// Konversi userID ke int/uint secara aman
-			if floatID, ok := claims["user_id"].(float64); ok {
-				c.Set("user_id", uint(floatID))
+			// Ekstrak klaim user_id string berbasis UUID
+			if strID, ok := claims["user_id"].(string); ok {
+				c.Set("user_id", strID)
 			} else {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Klaim pengguna tidak valid di dalam token"})
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Klaim UUID pengguna tidak valid di dalam token"})
 				c.Abort()
 				return
 			}

@@ -44,6 +44,18 @@ func Register(c *gin.Context) {
 		Password: string(hashedPassword),
 	}
 
+	// Cari peran default dinamis yang telah diaktifkan Superadmin
+	var defaultRole models.Role
+	if err := config.DB.Where("is_default = ?", true).First(&defaultRole).Error; err == nil {
+		newUser.RoleID = &defaultRole.ID
+	} else {
+		// Fallback pintar: Gunakan peran terdaftar pertama selain Superadmin jika ada
+		var fallbackRole models.Role
+		if err := config.DB.Where("name != ?", "Superadmin").First(&fallbackRole).Error; err == nil {
+			newUser.RoleID = &fallbackRole.ID
+		}
+	}
+
 	if err := config.DB.Create(&newUser).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat akun pengguna"})
 		return
@@ -66,7 +78,7 @@ func Login(c *gin.Context) {
 
 	// Cari user berdasarkan email
 	var user models.User
-	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
+	if err := config.DB.Preload("Role.Permissions").Where("email = ?", input.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
 		return
 	}
@@ -75,6 +87,21 @@ func Login(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email atau password salah"})
 		return
+	}
+
+	// PROTEKSI LOGIN RBAC ABSOLUT: Periksa izin otentikasi untuk non-Superadmin
+	if user.RoleID == nil || user.Role.Name != "Superadmin" {
+		hasLoginPermission := false
+		for _, perm := range user.Role.Permissions {
+			if perm.Name == "post_auth_login" {
+				hasLoginPermission = true
+				break
+			}
+		}
+		if !hasLoginPermission {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Akses ditolak: Peran Anda tidak diizinkan untuk melakukan otentikasi masuk"})
+			return
+		}
 	}
 
 	// Buat token JWT
@@ -116,7 +143,7 @@ func GetProfile(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := config.DB.First(&user, userID).Error; err != nil {
+	if err := config.DB.Preload("Role.Permissions").Where("id = ?", userID).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
 		return
 	}
