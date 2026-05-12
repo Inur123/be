@@ -1,0 +1,24 @@
+# Binaries untuk sistem operasi Mac/Linux/Windows
+main
+laci-cabang-be
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# File Variabel Lingkungan (Sangat Rahasia)
+.env
+.env.*
+!.env.example
+
+# Direktori Dependensi
+vendor/
+
+# Pengaturan IDE dan Editor Lokal
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
