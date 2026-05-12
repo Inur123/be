@@ -23,16 +23,9 @@ func main() {
 	// Hubungkan ke database
 	config.ConnectDB()
 
-	// FORCE DROP TABEL LAMA: Membersihkan skema integer secara otomatis agar digantikan skema UUID murni
-	fmt.Println("Mereset tabel lama di database lokal...")
-	config.DB.Exec("DROP TABLE IF EXISTS role_permissions CASCADE;")
-	config.DB.Exec("DROP TABLE IF EXISTS users CASCADE;")
-	config.DB.Exec("DROP TABLE IF EXISTS roles CASCADE;")
-	config.DB.Exec("DROP TABLE IF EXISTS permissions CASCADE;")
-
 	// Migrasi otomatis skema database
 	fmt.Println("Menjalankan migrasi database...")
-	if err := config.DB.AutoMigrate(&models.Permission{}, &models.Role{}, &models.User{}); err != nil {
+	if err := config.DB.AutoMigrate(&models.Permission{}, &models.Role{}, &models.User{}, &models.Period{}); err != nil {
 		log.Fatalf("Gagal melakukan migrasi database: %v", err)
 	}
 	fmt.Println("Migrasi database berhasil!")

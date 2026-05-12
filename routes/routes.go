@@ -81,6 +81,15 @@ func SetupRoutes(r *gin.Engine) {
 		api.PUT("/roles/:id/default", middleware.AuthMiddleware(), middleware.RequirePermission("put_roles_:id_default"), controllers.SetDefaultRole)
 		api.GET("/roles/:id", middleware.AuthMiddleware(), controllers.GetRoleById)
 		api.PUT("/roles/:id", middleware.AuthMiddleware(), middleware.RequirePermission("put_roles_:id"), controllers.UpdateRole)
+
+		// Rute Manajemen Masa Kepengurusan (Periodisasi)
+		api.GET("/periods", middleware.AuthMiddleware(), controllers.GetPeriods)
+		api.GET("/periods/active", middleware.AuthMiddleware(), controllers.GetActivePeriod)
+		api.POST("/periods", middleware.AuthMiddleware(), middleware.RequirePermission("post_periods"), controllers.CreatePeriod)
+		api.PUT("/periods/:id/active", middleware.AuthMiddleware(), middleware.RequirePermission("put_periods_:id_active"), controllers.SetActivePeriod)
+		api.PUT("/periods/:id", middleware.AuthMiddleware(), middleware.RequirePermission("put_periods_:id"), controllers.UpdatePeriod)
+		api.DELETE("/periods/:id", middleware.AuthMiddleware(), middleware.RequirePermission("delete_periods_:id"), controllers.DeletePeriod)
+
 	}
 
 	// SINKRONISASI OTOMATIS: Memindai rute yang didaftarkan untuk dijadikan butiran Permission
