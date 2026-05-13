@@ -59,7 +59,12 @@ func CreatePeriod(c *gin.Context) {
 	newPeriod := models.Period{
 		UserID:   userID,
 		Name:     input.Name,
+		Scope:    input.Scope,
 		IsActive: input.IsActive,
+	}
+
+	if input.Scope == "" {
+		newPeriod.Scope = "Cabang"
 	}
 
 	if err := config.DB.Create(&newPeriod).Error; err != nil {

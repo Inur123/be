@@ -12,6 +12,7 @@ type User struct {
 	Name      string     `gorm:"not null" json:"name" binding:"required"`
 	Email     string     `gorm:"unique;not null" json:"email" binding:"required,email"`
 	Password  string     `gorm:"not null" json:"-"` // Password tidak dikembalikan di response JSON
+	Avatar    string     `json:"avatar"`            // Foto profil pengguna
 	RoleID    *uuid.UUID `gorm:"type:uuid;index" json:"role_id"` // Kunci tamu opsional ke Role
 	Role      Role       `gorm:"foreignKey:RoleID" json:"role"`
 	CreatedAt time.Time  `json:"created_at"`
@@ -35,4 +36,17 @@ type RegisterInput struct {
 type LoginInput struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+}
+
+// Skema validasi masukan untuk pembaruan profil mandiri
+type UpdateProfileInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"` // Jika diisi, kata sandi akan di-hash ulang
+	Avatar   string `json:"avatar"`   // URL atau string Base64 gambar
+}
+
+// Skema validasi masukan untuk pengubahan peran pengguna oleh Superadmin
+type UpdateUserRoleInput struct {
+	RoleID *uuid.UUID `json:"role_id"` // Bisa nil untuk mencabut peran
 }

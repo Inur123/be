@@ -90,7 +90,20 @@ func SetupRoutes(r *gin.Engine) {
 		api.PUT("/periods/:id", middleware.AuthMiddleware(), middleware.RequirePermission("put_periods_:id"), controllers.UpdatePeriod)
 		api.DELETE("/periods/:id", middleware.AuthMiddleware(), middleware.RequirePermission("delete_periods_:id"), controllers.DeletePeriod)
 
+		// Rute Manajemen Akun dan Identitas Pengguna (Users)
+		api.GET("/users", middleware.AuthMiddleware(), controllers.GetUsers)
+		api.GET("/users/:id", middleware.AuthMiddleware(), controllers.GetUserById)
+		api.PUT("/users/profile", middleware.AuthMiddleware(), controllers.UpdateProfile)
+		api.PUT("/users/:id/role", middleware.AuthMiddleware(), middleware.RequirePermission("put_users_:id_role"), controllers.UpdateUserRole)
+		api.PUT("/users/:id/reset-password", middleware.AuthMiddleware(), middleware.RequirePermission("put_users_:id_reset-password"), controllers.AdminResetPassword)
+		api.DELETE("/users/:id", middleware.AuthMiddleware(), middleware.RequirePermission("delete_users_:id"), controllers.DeleteUser)
+
+		// Rute Upload File
+		api.POST("/upload", middleware.AuthMiddleware(), controllers.UploadFile)
 	}
+
+	// Sajikan file statis dari direktori uploads agar bisa diakses browser
+	r.Static("/uploads", "./uploads")
 
 	// SINKRONISASI OTOMATIS: Memindai rute yang didaftarkan untuk dijadikan butiran Permission
 	syncPermissionsFromRoutes(r)
