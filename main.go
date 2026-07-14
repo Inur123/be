@@ -25,7 +25,7 @@ func main() {
 
 	// Migrasi otomatis skema database
 	fmt.Println("Menjalankan migrasi database...")
-	if err := config.DB.AutoMigrate(&models.Permission{}, &models.Role{}, &models.User{}, &models.Period{}); err != nil {
+	if err := config.DB.AutoMigrate(&models.Permission{}, &models.Role{}, &models.User{}, &models.Period{}, &models.Archive{}); err != nil {
 		log.Fatalf("Gagal melakukan migrasi database: %v", err)
 	}
 	fmt.Println("Migrasi database berhasil!")

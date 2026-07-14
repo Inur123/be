@@ -98,6 +98,13 @@ func SetupRoutes(r *gin.Engine) {
 		api.PUT("/users/:id/reset-password", middleware.AuthMiddleware(), middleware.RequirePermission("put_users_:id_reset-password"), controllers.AdminResetPassword)
 		api.DELETE("/users/:id", middleware.AuthMiddleware(), middleware.RequirePermission("delete_users_:id"), controllers.DeleteUser)
 
+		// Rute Manajemen Arsip Surat
+		api.GET("/archives", middleware.AuthMiddleware(), controllers.GetArchives)
+		api.GET("/archives/:id", middleware.AuthMiddleware(), controllers.GetArchiveById)
+		api.POST("/archives", middleware.AuthMiddleware(), middleware.RequirePermission("post_archives"), controllers.CreateArchive)
+		api.PUT("/archives/:id", middleware.AuthMiddleware(), middleware.RequirePermission("put_archives_:id"), controllers.UpdateArchive)
+		api.DELETE("/archives/:id", middleware.AuthMiddleware(), middleware.RequirePermission("delete_archives_:id"), controllers.DeleteArchive)
+
 		// Rute Upload File
 		api.POST("/upload", middleware.AuthMiddleware(), controllers.UploadFile)
 	}
